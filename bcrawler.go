@@ -17,23 +17,24 @@ func main() {
 	// Get config from cmd args:
 	inputUrl := flag.String("url", "https://weglot.com", "Url to crawl")
 	inputDepth := flag.Int("depth", 1, "Depth to crawl")
-	allowedHost := flag.String("host", "", "Allowed host")
+	allowedDomain := flag.String("domain", "", "Allowed domain")
 
 	flag.Parse()
 
-	if(len(*allowedHost) == 0) {
+	// 
+	if(len(*allowedDomain) == 0) {
 		u, err := url.Parse(*inputUrl)
 	    if err != nil {
 	        panic(err)
 	    }
 	    fmt.Println(u.Host)
 	    host := u.Host
-	    allowedHost = &host
+	    allowedDomain = &host
 	}
 
 	fmt.Println("Input url: " + *inputUrl)
 	fmt.Println("Depth: ", *inputDepth)	
-	fmt.Println("Host", *allowedHost)
+	fmt.Println("Host", *allowedDomain)
 
 	time.Sleep(2000 * time.Millisecond)
 
@@ -41,7 +42,7 @@ func main() {
 	c := colly.NewCollector(		
 		colly.MaxDepth(*inputDepth),
 		colly.Async(true),		
-		colly.AllowedDomains(*allowedHost),
+		colly.AllowedDomains(*allowedDomain),
 
 	)
 	c.AllowURLRevisit = false
