@@ -39,12 +39,11 @@ func main() {
 	c.OnHTML("a[href]", func(e *colly.HTMLElement) {
 		link := e.Attr("href")
 
-		if foundUrls[link] {
+		if !foundUrls[link] {
+			foundUrls[link] = true
 			fmt.Println(link)
 			e.Request.Visit(link)	
-		} else {			
-			foundUrls[link] = true
-		}
+		} 
 		
 	})
 
