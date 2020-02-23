@@ -24,15 +24,15 @@ type Config struct {
 
 func main() {	
 
-	Config := getConfig()
+	config := getConfig()
 	foundUrls := make(map[string]bool)
 	requestPerformed := 0
 
 	// setup Collector
 	c := colly.NewCollector(		
-		colly.MaxDepth(Config.Depth),
+		colly.MaxDepth(config.Depth),
 		colly.Async(true),		
-		colly.AllowedDomains(Config.Domain),
+		colly.AllowedDomains(config.Domain),
 
 	)
 	c.AllowURLRevisit = false	
@@ -42,11 +42,11 @@ func main() {
 	c.OnHTML("a[href]", func(e *colly.HTMLElement) {
 		link := e.Attr("href")
 
-		if Config.Private {
+		if config.Private {
 			link = link + "?weglot-private=1"
 		}
 
-		if Config.MaxRequest != -1 && requestPerformed > Config.MaxRequest {
+		if config.MaxRequest != -1 && requestPerformed > config.MaxRequest {
 			return
 		}
 
@@ -58,17 +58,17 @@ func main() {
 		}
 	})
 
-	printInit(Config)
+	printInit(config)
 	time.Sleep(2000 * time.Millisecond)
 
-	c.Visit(Config.Url)
+	c.Visit(config.Url)
 	requestPerformed++	
 	c.Wait()
 
 	printResults(len(foundUrls))
 
-	if Config.WriteToCsv {
-		writeToCsv(foundUrls, Config)
+	if config.WriteToCsv {
+		writeToCsv(foundUrls, config)
 	}
 }
 
