@@ -8,14 +8,16 @@ import (
 	"net/url"
 	"encoding/csv"
 	"os"
+	"strconv"
 )
-
 
 type Config struct {
 	Url string
 	Domain string
 	Depth int
 	WriteToCsv bool
+	Private bool
+	MaxRequest int
 }
 
 // todo dont display already visited link
@@ -24,6 +26,7 @@ func main() {
 
 	Config := getConfig()
 	foundUrls := make(map[string]bool)
+	requestPerformed := 0
 
 	// setup Collector
 	c := colly.NewCollector(		
@@ -39,21 +42,32 @@ func main() {
 	c.OnHTML("a[href]", func(e *colly.HTMLElement) {
 		link := e.Attr("href")
 
+		if Config.Private {
+			link = link + "?weglot-private=1"
+		}
+
+		if Config.MaxRequest != -1 && requestPerformed > Config.MaxRequest {
+			return
+		}
+
 		if !foundUrls[link] {
 			foundUrls[link] = true
 			fmt.Println(link)
-			e.Request.Visit(link)	
-		} 
+			e.Request.Visit(link)
+			requestPerformed++	
+		}
+		
 		
 	})
 
 	printInit(Config)
 	time.Sleep(2000 * time.Millisecond)
 
-	c.Visit(Config.Url)	
+	c.Visit(Config.Url)
+	requestPerformed++	
 	c.Wait()
 
-	printResults(foundUrls)
+	printResults(len(foundUrls))
 
 	if Config.WriteToCsv {
 		writeToCsv(foundUrls, Config)
@@ -65,16 +79,17 @@ func printInit(config Config) {
 	fmt.Println("Input url: " + config.Url)
 	fmt.Println("Depth: ", config.Depth)	
 	fmt.Println("Host", config.Domain)
+	fmt.Println("Private mode:", config.Private)
 	
 	fmt.Println("---------------------------------")
 	fmt.Println("Visiting " + config.Url)
 
 }
 
-func printResults(urls map[string]bool) {
+func printResults(urlsCount int) {
 	fmt.Println("---------------------------------")
 	fmt.Println("Visisted:")
-	fmt.Println(len(urls))
+	fmt.Println(urlsCount)
 	fmt.Println("urls")
 }
 
@@ -89,13 +104,15 @@ func writeToCsv(urls map[string]bool, config Config) {
 
 	fmt.Println("Writing to " + config.Domain + ".csv ...")
 
+	defer fmt.Println("done")
 	defer file.Close()
 	writer := csv.NewWriter(file)
 	defer writer.Flush()
-	defer fmt.Println("done")
 
+	i := 0
 	for link := range urls {
-		writer.Write([]string{link})
+		writer.Write([]string{strconv.Itoa(i), link})
+		i = i + 1
 	}
 }
 
@@ -105,6 +122,8 @@ func getConfig() Config {
 	inputDepth := flag.Int("depth", 1, "Depth to crawl")
 	allowedDomain := flag.String("domain", "", "Allowed domain")
 	writeCsv := flag.Bool("csv", false, "Writes results to CSV")
+	private := flag.Bool("private", false, "Crawls with private mode")
+	max := flag.Int("max", -1, "Maximum requests to perform")
 	flag.Parse()
 
 	// Resolve domain if not passed as arg
@@ -112,13 +131,16 @@ func getConfig() Config {
 		u, err := url.Parse(*inputUrl)
 	    if err != nil {
 	        panic(err)
-	    }
-	    fmt.Println(u.Host)
+	    }	    
 	    host := u.Host
 	    allowedDomain = &host
 	}
 
-	config := Config{*inputUrl, *allowedDomain, *inputDepth, *writeCsv}
+	if(*private) {
+		*inputUrl = *inputUrl + "?weglot-private=1"
+	} 
+
+	config := Config{*inputUrl, *allowedDomain, *inputDepth, *writeCsv, *private, *max}
 
 	return config
 }
