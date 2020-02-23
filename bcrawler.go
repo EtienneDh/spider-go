@@ -56,8 +56,6 @@ func main() {
 			e.Request.Visit(link)
 			requestPerformed++	
 		}
-		
-		
 	})
 
 	printInit(Config)
@@ -72,7 +70,6 @@ func main() {
 	if Config.WriteToCsv {
 		writeToCsv(foundUrls, Config)
 	}
-
 }
 
 func printInit(config Config) {
@@ -88,9 +85,7 @@ func printInit(config Config) {
 
 func printResults(urlsCount int) {
 	fmt.Println("---------------------------------")
-	fmt.Println("Visisted:")
-	fmt.Println(urlsCount)
-	fmt.Println("urls")
+	fmt.Println("Visited: " + strconv.Itoa(urlsCount) + " urls")
 }
 
 func writeToCsv(urls map[string]bool, config Config) {
@@ -102,9 +97,12 @@ func writeToCsv(urls map[string]bool, config Config) {
 		return
 	}
 
-	fmt.Println("Writing to " + config.Domain + ".csv ...")
+	dir, err := os.Getwd()
+	if err != nil {
+		panic(err)
+	}
 
-	defer fmt.Println("done")
+	defer fmt.Println("CSV generated at " + dir + "/" + fName)
 	defer file.Close()
 	writer := csv.NewWriter(file)
 	defer writer.Flush()
@@ -126,22 +124,28 @@ func getConfig() Config {
 	max := flag.Int("max", -1, "Maximum requests to perform")
 	flag.Parse()
 
-	// Resolve domain if not passed as arg
-	if(len(*allowedDomain) == 0) {
-		u, err := url.Parse(*inputUrl)
+	config := Config{*inputUrl, *allowedDomain, *inputDepth, *writeCsv, *private, *max}
+	config.init()
+
+	return config
+}
+
+// Config is passed as pointer to allow modifying the struct
+func (config *Config) init() {
+	// resolve domain if not passed as arg
+	if len(config.Domain) == 0 {
+		u, err := url.Parse(config.Url)
 	    if err != nil {
+	    	fmt.Println("Failed to resolve host")
 	        panic(err)
 	    }	    
 	    host := u.Host
-	    allowedDomain = &host
+	    config.Domain = host
 	}
 
-	if(*private) {
-		*inputUrl = *inputUrl + "?weglot-private=1"
-	} 
-
-	config := Config{*inputUrl, *allowedDomain, *inputDepth, *writeCsv, *private, *max}
-
-	return config
+	// update url for private mode
+	if config.Private {
+		config.Url = config.Url + "?weglot-private=1"
+	}
 }
 
