@@ -1,11 +1,13 @@
 # go-crawler
 a web crawler in go
 
-Usage
+**Usage**
 
-./bcrawler -url= -depth= -domain -csv
+./bcrawler 
 
-url string
-depth int
-domain string
-csv bool
+Url string 
+Domain string
+Depth int
+WriteToCsv bool
+Private bool
+MaxRequest int
