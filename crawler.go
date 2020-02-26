@@ -39,6 +39,7 @@ func main() {
 		if config.Private {
 			link = link + weglotPrivate
 		}
+		// todo maybe access foundUrls with mutex
 		if link != "" && !foundUrls[link] {
 			foundUrls[link] = true
 			// crawl for more links
@@ -78,7 +79,7 @@ func main() {
 	c.Visit(config.Url)
 	c.Wait()
 
-	printResults(urlsWithCount, requestPerformed)
+	printResults(urlsWithCount, len(foundUrls), requestPerformed)
 
 	if config.WriteToCsv {
 		writeToCsv(urlsWithCount, config.Domain)
@@ -94,16 +95,14 @@ func printInit(config Config) {
 	fmt.Println("---------------------------------")
 }
 
-func printResults(urlsWithCount []UrlWithCount, requestPerformed int) {
-	urlsFoundCount := 0
+func printResults(urlsWithCount []UrlWithCount, linksFoundCount int, requestPerformed int) {
 	totalWordCount := 0
 	for _, url := range urlsWithCount {
-		urlsFoundCount++
 		totalWordCount = totalWordCount + url.WordCount
 	}
 
 	fmt.Println("---------------------------------")
 	fmt.Println("Request performed: " + strconv.Itoa(requestPerformed))
-	fmt.Println("Number of links found: " + strconv.Itoa(urlsFoundCount))
+	fmt.Println("Number of links found: " + strconv.Itoa(linksFoundCount))
 	fmt.Println("Total number of word found: " + strconv.Itoa(totalWordCount))
 }
