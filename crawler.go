@@ -40,8 +40,13 @@ func main() {
 			link = link + weglotPrivate
 		}
 		// todo maybe access foundUrls with mutex
-		if link != "" && !foundUrls[link] {
+		mutex.Lock()
+		isAlreadyFound := foundUrls[link]
+		mutex.Unlock()
+		if link != "" && !isAlreadyFound {
+			mutex.Lock()
 			foundUrls[link] = true
+			mutex.Unlock()
 			// crawl for more links
 			e.Request.Visit(e.Request.AbsoluteURL(link))
 		}
@@ -61,16 +66,18 @@ func main() {
 		fmt.Println("Visiting: " + url + " | RP: " + strconv.Itoa(requestPerformed))
 
 		// get wordcount for this url
-		apiResponse, error := makeWCAPIRequest(url)
-		pageCount := 0
-		if error == nil {
-			pageCount = countWords(apiResponse.Payload)
-			fmt.Println("---------------------------------")
-			fmt.Println(url + " has " + strconv.Itoa(pageCount) + " words")
-			fmt.Println("---------------------------------")
+		if config.Count {
+			apiResponse, error := makeWCAPIRequest(url)
+			pageCount := 0
+			if error == nil {
+				pageCount = countWords(apiResponse.Payload)
+				fmt.Println("---------------------------------")
+				fmt.Println(url + " has " + strconv.Itoa(pageCount) + " words")
+				fmt.Println("---------------------------------")
+			}
+			urlWithCount := UrlWithCount{url, pageCount}
+			urlsWithCount = append(urlsWithCount, urlWithCount)
 		}
-		urlWithCount := UrlWithCount{url, pageCount}
-		urlsWithCount = append(urlsWithCount, urlWithCount)
 	})
 
 	printInit(config)
@@ -87,10 +94,12 @@ func main() {
 }
 
 func printInit(config Config) {
+	fmt.Println("hello TEST")
 	fmt.Println("Input url: " + config.Url)
 	fmt.Println("Depth: ", config.Depth)
 	fmt.Println("Host", config.Domain)
 	fmt.Println("Private mode:", config.Private)
+	fmt.Println("Count words: ", config.Count)
 
 	fmt.Println("---------------------------------")
 }

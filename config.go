@@ -13,6 +13,7 @@ type Config struct {
 	WriteToCsv bool
 	Private    bool
 	MaxRequest int
+	Count      bool
 }
 
 const defaultURL = "https://weglot.com"
@@ -21,6 +22,7 @@ const defaultDomain = ""
 const defaultCSV = false
 const defaultPrivate = false
 const defaultMaxRequest = -1
+const defaultCount = false
 
 const weglotPrivate = "?weglot-private=1"
 
@@ -32,9 +34,11 @@ func getConfig() Config {
 	writeCsv := flag.Bool("csv", defaultCSV, "Writes results to CSV")
 	private := flag.Bool("private", defaultPrivate, "Crawls with private mode")
 	max := flag.Int("max", defaultMaxRequest, "Maximum requests to perform")
+	count := flag.Bool("crawl", defaultCount, "Count words")
+
 	flag.Parse()
 
-	config := Config{*inputUrl, *allowedDomain, *inputDepth, *writeCsv, *private, *max}
+	config := Config{*inputUrl, *allowedDomain, *inputDepth, *writeCsv, *private, *max, *count}
 	config.init()
 
 	return config
