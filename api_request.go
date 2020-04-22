@@ -29,6 +29,7 @@ func makeWCAPIRequest(url string) (APIResponse, error) {
 		return response, errors.New("Cannot crawl this url")
 	}
 
+	// @todo set timeout on request
 	resp, err := http.Get(endpoint + url)
 	if err != nil {
 		panic(err)
