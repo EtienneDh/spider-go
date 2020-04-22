@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"strconv"
-	"strings"
 	"sync"
 
 	"github.com/gocolly/colly"
@@ -89,23 +88,12 @@ func (weglotCrawler *WeglotCrawler) setCallbacks() {
 			link = link + weglotPrivate
 		}
 
-		// Temporary fix to crawl shopify in translated version
-		baseURL := config.Domain
-		foundURL := e.Request.AbsoluteURL(link)
-		splitFoundURL := strings.SplitAfter(foundURL, baseURL)
-
-		newURL := link
-		if len(splitFoundURL) > 1 {
-			newURL = "/a/l/es" + splitFoundURL[1]
-		}
-
 		weglotCrawler.mutex.Lock()
 		isAlreadyFound := weglotCrawler.foundUrls[link]
 		if link != "" && !isAlreadyFound {
 			weglotCrawler.foundUrls[link] = true
 			// crawl for more links
-			//e.Request.Visit(e.Request.AbsoluteURL(link))
-			e.Request.Visit(newURL)
+			e.Request.Visit(e.Request.AbsoluteURL(link))
 		}
 		weglotCrawler.mutex.Unlock()
 	})
