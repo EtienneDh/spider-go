@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -39,6 +40,19 @@ func main() {
 		if config.Private {
 			link = link + weglotPrivate
 		}
+
+		// Temporary fix to crawl shopify in translated version
+		baseUrl := config.Domain
+		foundUrl := e.Request.AbsoluteURL(link)
+		splitFoundUrl := strings.SplitAfter(foundUrl, baseUrl)
+
+		newUrl := ""
+		if len(splitFoundUrl) > 1 {
+			newUrl = "/a/l/es" + splitFoundUrl[1]
+		} else {
+			newUrl = link
+		}
+
 		// todo maybe access foundUrls with mutex
 		mutex.Lock()
 		isAlreadyFound := foundUrls[link]
@@ -48,7 +62,8 @@ func main() {
 			foundUrls[link] = true
 			mutex.Unlock()
 			// crawl for more links
-			e.Request.Visit(e.Request.AbsoluteURL(link))
+			//e.Request.Visit(e.Request.AbsoluteURL(link))
+			e.Request.Visit(newUrl)
 		}
 	})
 
