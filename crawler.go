@@ -1,6 +1,9 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"os"
+)
 
 func main() {
 	// Maybe some type of configs will have an effect here
@@ -12,9 +15,14 @@ func main() {
 
 	config, err := NewConfig()
 	if err != nil {
-		panic(err)
+		fmt.Println(err.Error())
+		os.Exit(1)
 	}
-	fmt.Println(config)
+	if config.Mode == "discover" {
+		weglotDiscover := NewWeglotDiscover(config)
+		weglotDiscover.Run()
+	}
+
 	// weglotCrawler := NewWeglotCrawler()
 	// weglotCrawler.Run()
 }

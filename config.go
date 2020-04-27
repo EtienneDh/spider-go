@@ -3,28 +3,28 @@ package main
 import (
 	"errors"
 	"flag"
-	"fmt"
 	"net/url"
 	"strings"
 )
 
+// Config is used to parameter the crawler
 type Config struct {
 	URLS        []string
 	Domain      string
 	Private     bool
 	Integration string
 	Mode        string
+	Depth       int
+	MaxRequest  int
 }
 
 var allowedModes = []string{"discover", "crawl"}
-var allowedIntegrations = []string{"javascript", "connect", "wordpress plugin", "shopify app"}
+var allowedIntegrations = []string{"javascript", "connect", "wordpress-plugin", "shopify-app"}
 
 const defaultURL = "https://weglot.com"
 const defaultDepth = 5
-const defaultDomain = ""
 const defaultPrivate = false
-const defaultMaxRequest = -1
-const defaultCount = false
+const defaultMaxRequest = 50
 
 const weglotPrivate = "?weglot-private=1"
 
@@ -38,22 +38,24 @@ func NewConfig() (Config, error) {
 	mode := flag.String("mode", "discover", "Bot mode: discover or crawl")
 	flag.Parse()
 
-	// extract urls
+	// extract urls from input
 	urls := getURLS(*inputURLS)
 	if len(urls) == 0 {
 		return Config{}, errors.New("You must enter at least 1 url")
 	}
 	// resolve host
 	domain := getDomain(urls[0])
-
+	if domain == "" {
+		return Config{}, errors.New("Failed to resolve host")
+	}
 	// validate
 	if !isValid(*integration, allowedIntegrations) {
-		return Config{}, errors.New("You must enter a valid integration; javascript, connect, wordpress plugin or shopify app")
+		return Config{}, errors.New("You must enter a valid integration: javascript, connect, wordpress plugin or shopify app")
 	}
 	if !isValid(*mode, allowedModes) {
 		return Config{}, errors.New("You must enter a valid mode: discover or crawl")
 	}
-	config := Config{urls, domain, *private, *integration, *mode}
+	config := Config{urls, domain, *private, *integration, *mode, defaultDepth, defaultMaxRequest}
 
 	return config, nil
 }
@@ -67,8 +69,8 @@ func getURLS(urlsAsString string) []string {
 func getDomain(inputURL string) string {
 	u, err := url.Parse(inputURL)
 	if err != nil {
-		fmt.Println("Failed to resolve host")
-		panic(err)
+
+		return ""
 	}
 
 	return u.Host
