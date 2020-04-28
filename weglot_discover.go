@@ -47,8 +47,15 @@ func NewWeglotDiscover(config Config) *WeglotDiscover {
 // Run starts crawling
 func (weglotDiscover *WeglotDiscover) Run() {
 	weglotDiscover.printInit()
-	weglotDiscover.crawler.Visit(weglotDiscover.config.URLS[0])
+
+	url := weglotDiscover.config.URLS[0]
+	if weglotDiscover.config.Private {
+		url = url + weglotPrivate
+	}
+	// start crawling and wait until for all thread are done
+	weglotDiscover.crawler.Visit(url)
 	weglotDiscover.crawler.Wait()
+
 	weglotDiscover.printResults()
 }
 
