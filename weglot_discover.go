@@ -84,21 +84,20 @@ func (weglotDiscover *WeglotDiscover) setCallbacks() {
 	weglotDiscover.crawler.OnHTML("a[href]", func(e *colly.HTMLElement) {
 		link := e.Attr("href")
 
-		// need to validate url against languages
+		// need to validate url against languages w/ url_validator
+		if IsOriginalLanguage(link, config.Integration, []string{"fr", "es", "ja"}) {
+			e.Request.Visit(e.Request.AbsoluteURL(link))
+		} else {
+			fmt.Println("Not visiting: " + link)
+		}
 
+		// need to format url w/ url_formater to handle:
+		// adding private part to url
+		// crawl shopify url in translated version by adding a/l/_code in url
 		if config.Private {
 			link = link + weglotPrivate
 		}
 
-		// Todo: see if this logic is really necessary, colly is supposed to handle this by itself
-		weglotDiscover.mutex.Lock()
-		isAlreadyFound := weglotDiscover.foundUrls[link]
-		if link != "" && !isAlreadyFound {
-			weglotDiscover.foundUrls[link] = true
-			// crawl for more links
-			e.Request.Visit(e.Request.AbsoluteURL(link))
-		}
-		weglotDiscover.mutex.Unlock()
 	})
 
 	// Request Callback
@@ -115,6 +114,6 @@ func (weglotDiscover *WeglotDiscover) setCallbacks() {
 	})
 
 	weglotDiscover.crawler.OnResponse(func(r *colly.Response) {
-		fmt.Println("Visited", r.Request.URL)
+		// fmt.Println("Visited", r.Request.URL)
 	})
 }
