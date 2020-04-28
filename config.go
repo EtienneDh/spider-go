@@ -1,64 +1,106 @@
 package main
 
 import (
+	"errors"
 	"flag"
-	"fmt"
 	"net/url"
+	"strings"
 )
 
+// Config is used to parameter the crawler
 type Config struct {
-	Url        string
-	Domain     string
-	Depth      int
-	WriteToCsv bool
-	Private    bool
-	MaxRequest int
-	Count      bool
+	URLS             []string
+	Domain           []string
+	ExcludedLanguage []string
+	Integration      string
+	Mode             string
+	Private          bool
+	Depth            int
+	MaxRequest       int
 }
 
-const defaultURL = "https://weglot.com"
-const defaultDepth = 1
-const defaultDomain = ""
-const defaultCSV = false
+var allowedModes = []string{"discover", "crawl"}
+var allowedIntegrations = []string{"javascript", "connect", "wordpress-plugin", "shopify-app"}
+
+const defaultURL = ""
+const defaultDepth = 5
 const defaultPrivate = false
-const defaultMaxRequest = -1
-const defaultCount = false
+const defaultMaxRequest = 20
+const defaultMode = "discover"
 
 const weglotPrivate = "?weglot-private=1"
 
-func getConfig() Config {
-	// Get config from cmd args:
-	inputUrl := flag.String("url", defaultURL, "Url to crawl")
-	inputDepth := flag.Int("depth", defaultDepth, "Depth to crawl")
-	allowedDomain := flag.String("domain", defaultDomain, "Allowed domain")
-	writeCsv := flag.Bool("csv", defaultCSV, "Writes results to CSV")
-	private := flag.Bool("private", defaultPrivate, "Crawls with private mode")
-	max := flag.Int("max", defaultMaxRequest, "Maximum requests to perform")
-	count := flag.Bool("crawl", defaultCount, "Count words")
+// NewConfig set up and return a new Config type
+func NewConfig() (Config, error) {
 
+	// Get config from cmd args:
+	inputURLS := flag.String("url", defaultURL, "Url to crawl")
+	inputExcludedLanguages := flag.String("l-excluded", "", "Destination languages")
+	integration := flag.String("integration", "", "Project Integration")
+	mode := flag.String("mode", defaultMode, "Bot mode: discover or crawl")
+	private := flag.Bool("private", defaultPrivate, "Crawls with private mode")
 	flag.Parse()
 
-	config := Config{*inputUrl, *allowedDomain, *inputDepth, *writeCsv, *private, *max, *count}
-	config.init()
+	// extract urls from input
+	urls := toArray(*inputURLS)
+	if len(urls) == 0 {
+		return Config{}, errors.New("You must enter at least 1 url")
+	}
 
-	return config
+	// extract languagesTo
+	excludedLanguage := toArray(*inputExcludedLanguages)
+
+	// resolve host
+	domain := getDomain(urls[0])
+	if domain == "" {
+		return Config{}, errors.New("Failed to resolve host")
+	}
+	// Also add www.domain to go through some redirections
+	allDomains := []string{domain, "www." + domain}
+
+	// validate
+	if !isValid(*integration, allowedIntegrations) {
+		return Config{}, errors.New("You must enter a valid integration: javascript, connect, wordpress plugin or shopify app")
+	}
+	if !isValid(*mode, allowedModes) {
+		return Config{}, errors.New("You must enter a valid mode: discover or crawl")
+	}
+	// Create struct
+	config := Config{
+		urls,
+		allDomains,
+		excludedLanguage,
+		*integration,
+		*mode,
+		*private,
+		defaultDepth,
+		defaultMaxRequest}
+
+	return config, nil
+}
+
+func toArray(s string) []string {
+
+	return strings.Split(s, " ")
 }
 
 // Config is passed as pointer to allow modifying the struct
-func (config *Config) init() {
-	// resolve domain if not passed as arg
-	if len(config.Domain) == 0 {
-		u, err := url.Parse(config.Url)
-		if err != nil {
-			fmt.Println("Failed to resolve host")
-			panic(err)
-		}
-		host := u.Host
-		config.Domain = host
+func getDomain(inputURL string) string {
+	u, err := url.Parse(inputURL)
+	if err != nil {
+
+		return ""
 	}
 
-	// update url for private mode
-	if config.Private {
-		config.Url = config.Url + weglotPrivate
+	return u.Host
+}
+
+func isValid(toValidate string, authorizedValues []string) bool {
+	for _, value := range authorizedValues {
+		if toValidate == value {
+			return true
+		}
 	}
+
+	return false
 }
