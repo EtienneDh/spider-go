@@ -33,7 +33,7 @@ func NewWeglotDiscover(config Config) *WeglotDiscover {
 	crawler := colly.NewCollector(
 		colly.MaxDepth(config.Depth),
 		colly.Async(true),
-		colly.AllowedDomains(config.Domain),
+		colly.AllowedDomains(config.Domain...),
 	)
 	crawler.AllowURLRevisit = false
 	crawler.Limit(&colly.LimitRule{DomainGlob: "*", Parallelism: 2})
@@ -56,7 +56,7 @@ func (weglotDiscover *WeglotDiscover) printInit() {
 	config := weglotDiscover.config
 	fmt.Println("Input url: ", config.URLS)
 	fmt.Println("Depth: ", config.Depth)
-	fmt.Println("Host", config.Domain)
+	fmt.Println("Domain", config.Domain)
 	fmt.Println("Private mode:", config.Private)
 	fmt.Println("Max requests:", config.MaxRequest)
 
@@ -75,7 +75,7 @@ func (weglotDiscover *WeglotDiscover) printResults() {
 	fmt.Println("Total number of word found: " + strconv.Itoa(totalWordCount))
 }
 
-// setCallbacks sets callbacks on link find & request performed events
+// setCallbacks sets callbacks on link found & request performed events
 // @todo Maybe refacto each callback into its own method
 func (weglotDiscover *WeglotDiscover) setCallbacks() {
 	config := weglotDiscover.config
@@ -83,9 +83,9 @@ func (weglotDiscover *WeglotDiscover) setCallbacks() {
 	// Link Found Callback
 	weglotDiscover.crawler.OnHTML("a[href]", func(e *colly.HTMLElement) {
 		link := e.Attr("href")
-
-		// need to validate url against languages w/ url_validator
-		if IsOriginalLanguage(link, config.Integration, []string{"fr", "es", "ja"}) {
+		// We only want to crawl original version of website when discovering links
+		isOriginal, err := IsOriginalLanguage(link, config.Integration, config.ExcludedLanguage)
+		if isOriginal && err == nil {
 			e.Request.Visit(e.Request.AbsoluteURL(link))
 		} else {
 			fmt.Println("Not visiting: " + link)
@@ -115,5 +115,9 @@ func (weglotDiscover *WeglotDiscover) setCallbacks() {
 
 	weglotDiscover.crawler.OnResponse(func(r *colly.Response) {
 		// fmt.Println("Visited", r.Request.URL)
+	})
+
+	weglotDiscover.crawler.OnError(func(_ *colly.Response, err error) {
+		fmt.Println("Something went wrong:", err)
 	})
 }

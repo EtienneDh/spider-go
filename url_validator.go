@@ -1,12 +1,15 @@
 package main
 
 import (
-	"fmt"
+	"errors"
 	"regexp"
 )
 
-// IsOriginalLanguage returns trues if url does not have any language code
-func IsOriginalLanguage(url string, integration string, languagesTo []string) bool {
+// IsOriginalLanguage returns trues if url does not contains any language code or if languagesTo is empty
+func IsOriginalLanguage(url string, integration string, languagesTo []string) (bool, error) {
+	if len(languagesTo) == 0 {
+		return true, nil
+	}
 	pattern := ""
 
 	switch integration {
@@ -22,10 +25,10 @@ func IsOriginalLanguage(url string, integration string, languagesTo []string) bo
 
 	match, err := regexp.Match(pattern, []byte(url))
 	if err != nil {
-		fmt.Println(err)
+		return false, errors.New("Error while parsing regex")
 	}
 
-	return !match
+	return !match, nil
 }
 
 // Looks for mywebsite/_code/resource in URL or mywebsite/resource/_code
@@ -51,8 +54,8 @@ func getRegexPatternForJavascript(languagesTo []string) string {
 }
 
 func addLanguageCodes(pattern string, languagesTo []string) string {
-	for k, v := range languagesTo {
-		pattern += v
+	for k, language := range languagesTo {
+		pattern += language
 		if k != len(languagesTo)-1 {
 			pattern += "|"
 		}

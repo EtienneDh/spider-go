@@ -9,22 +9,24 @@ import (
 
 // Config is used to parameter the crawler
 type Config struct {
-	URLS        []string
-	Domain      string
-	Private     bool
-	Integration string
-	Mode        string
-	Depth       int
-	MaxRequest  int
+	URLS             []string
+	Domain           []string
+	ExcludedLanguage []string
+	Integration      string
+	Mode             string
+	Private          bool
+	Depth            int
+	MaxRequest       int
 }
 
 var allowedModes = []string{"discover", "crawl"}
 var allowedIntegrations = []string{"javascript", "connect", "wordpress-plugin", "shopify-app"}
 
-const defaultURL = "https://weglot.com"
+const defaultURL = ""
 const defaultDepth = 5
 const defaultPrivate = false
-const defaultMaxRequest = 50
+const defaultMaxRequest = 20
+const defaultMode = "discover"
 
 const weglotPrivate = "?weglot-private=1"
 
@@ -33,21 +35,29 @@ func NewConfig() (Config, error) {
 
 	// Get config from cmd args:
 	inputURLS := flag.String("url", defaultURL, "Url to crawl")
-	private := flag.Bool("private", defaultPrivate, "Crawls with private mode")
+	inputExcludedLanguages := flag.String("l-excluded", "", "Destination languages")
 	integration := flag.String("integration", "", "Project Integration")
-	mode := flag.String("mode", "discover", "Bot mode: discover or crawl")
+	mode := flag.String("mode", defaultMode, "Bot mode: discover or crawl")
+	private := flag.Bool("private", defaultPrivate, "Crawls with private mode")
 	flag.Parse()
 
 	// extract urls from input
-	urls := getURLS(*inputURLS)
+	urls := toArray(*inputURLS)
 	if len(urls) == 0 {
 		return Config{}, errors.New("You must enter at least 1 url")
 	}
+
+	// extract languagesTo
+	excludedLanguage := toArray(*inputExcludedLanguages)
+
 	// resolve host
 	domain := getDomain(urls[0])
 	if domain == "" {
 		return Config{}, errors.New("Failed to resolve host")
 	}
+	// Also add www.domain to go through some redirections
+	allDomains := []string{domain, "www." + domain}
+
 	// validate
 	if !isValid(*integration, allowedIntegrations) {
 		return Config{}, errors.New("You must enter a valid integration: javascript, connect, wordpress plugin or shopify app")
@@ -55,14 +65,23 @@ func NewConfig() (Config, error) {
 	if !isValid(*mode, allowedModes) {
 		return Config{}, errors.New("You must enter a valid mode: discover or crawl")
 	}
-	config := Config{urls, domain, *private, *integration, *mode, defaultDepth, defaultMaxRequest}
+	// Create struct
+	config := Config{
+		urls,
+		allDomains,
+		excludedLanguage,
+		*integration,
+		*mode,
+		*private,
+		defaultDepth,
+		defaultMaxRequest}
 
 	return config, nil
 }
 
-func getURLS(urlsAsString string) []string {
+func toArray(s string) []string {
 
-	return strings.Split(urlsAsString, " ")
+	return strings.Split(s, " ")
 }
 
 // Config is passed as pointer to allow modifying the struct
