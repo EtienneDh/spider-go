@@ -93,18 +93,14 @@ func (weglotDiscover *WeglotDiscover) setCallbacks() {
 		// We only want to crawl original version of website when discovering links
 		isOriginal, err := IsOriginalLanguage(link, config.Integration, config.ExcludedLanguage)
 		if isOriginal && err == nil {
-			e.Request.Visit(e.Request.AbsoluteURL(link))
+			if config.Private {
+				link = link + weglotPrivate
+			}
+			url := e.Request.AbsoluteURL(link)
+			e.Request.Visit(e.Request.AbsoluteURL(url))
 		} else {
 			fmt.Println("Not visiting: " + link)
 		}
-
-		// need to format url w/ url_formater to handle:
-		// adding private part to url
-		// crawl shopify url in translated version by adding a/l/_code in url
-		if config.Private {
-			link = link + weglotPrivate
-		}
-
 	})
 
 	// Request Callback
@@ -112,11 +108,14 @@ func (weglotDiscover *WeglotDiscover) setCallbacks() {
 		if config.MaxRequest != -1 && weglotDiscover.requestPerformed >= config.MaxRequest {
 			return
 		}
+		url := r.URL.String()
 		weglotDiscover.mutex.Lock()
 		weglotDiscover.requestPerformed++
+		if !weglotDiscover.foundUrls[url] {
+			weglotDiscover.foundUrls[url] = true
+		}
 		weglotDiscover.mutex.Unlock()
 
-		url := r.URL.String()
 		fmt.Println("Visiting: " + url + " | RP: " + strconv.Itoa(weglotDiscover.requestPerformed))
 	})
 
