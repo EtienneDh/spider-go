@@ -11,5 +11,6 @@ func countWords(payload []Word) int {
 		split := r.FindAllString(word.W, -1)
 		count = count + len(split)
 	}
+
 	return count
 }
